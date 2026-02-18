@@ -1,0 +1,7 @@
+{
+  "name": "ShelterSync - Resident Management System",
+  "description": "A comprehensive resident management platform for shelters featuring an admin dashboard for profile management and a tablet-optimized kiosk for resident check-in/out tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
