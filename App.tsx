@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Resident, MovementLog, AuthUser, KioskSettings } from './types';
 import { storage } from './services/storage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { KioskUI } from './components/KioskUI';
 import { LoginModal } from './components/LoginModal';
-import { LayoutDashboard, Tablet, ShieldAlert, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, Tablet, ShieldAlert, LogOut, Lock, Clock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'ADMIN' | 'KIOSK'>('KIOSK');
@@ -14,11 +13,18 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [kioskSettings, setKioskSettings] = useState<KioskSettings>(storage.getKioskSettings());
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Initialize data
+  // Initialize data and clock
   useEffect(() => {
     setResidents(storage.getResidents());
     setLogs(storage.getLogs());
+
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const handleLogin = (username: string, pin: string) => {
@@ -42,7 +48,18 @@ const App: React.FC = () => {
     storage.saveResidents(newResidents);
   }, []);
 
-  const handleUpdateResident = (updated: Resident) => {
+  const handleUpdateResident = (updated: Resident, silent = false) => {
+    const resident = residents.find(r => r.id === updated.id);
+    if (resident && !silent) {
+      const log = storage.addLog({
+        residentId: updated.id,
+        residentName: updated.name,
+        type: 'PROFILE_UPDATE',
+        timestamp: new Date().toISOString(),
+        performerName: currentUser?.name || 'System'
+      });
+      setLogs([log, ...logs]);
+    }
     const next = residents.map(r => r.id === updated.id ? updated : r);
     updateResidents(next);
   };
@@ -66,26 +83,43 @@ const App: React.FC = () => {
     const resident = residents.find(r => r.id === id);
     if (!resident) return;
 
+    let isLate = false;
+    const expDate = resident.expectedReturnDate;
+    const expTime = resident.expectedReturnTime;
+
+    if (expDate && expTime) {
+      const eta = new Date(`${expDate}T${expTime}`);
+      if (new Date() > eta) {
+        isLate = true;
+      }
+    }
+
     const updatedResident = {
       ...resident,
       isCheckedIn: true,
       lastActionAt: new Date().toISOString(),
       currentDestination: undefined,
-      expectedReturnTime: undefined
+      expectedReturnTime: undefined,
+      expectedReturnDate: undefined
     };
 
     const log = storage.addLog({
       residentId: id,
       residentName: resident.name,
       type: 'CHECK_IN',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      performerName: currentUser?.name || resident.name,
+      isLate,
+      expectedReturnTime: expTime,
+      expectedReturnDate: expDate
     });
 
-    handleUpdateResident(updatedResident);
+    // Pass true for silent to prevent the default PROFILE_UPDATE log
+    handleUpdateResident(updatedResident, true);
     setLogs([log, ...logs]);
   };
 
-  const handleCheckOut = (id: string, destination: string, eta: string) => {
+  const handleCheckOut = (id: string, destination: string, eta: string, returnDate: string) => {
     const resident = residents.find(r => r.id === id);
     if (!resident) return;
 
@@ -94,7 +128,8 @@ const App: React.FC = () => {
       isCheckedIn: false,
       lastActionAt: new Date().toISOString(),
       currentDestination: destination,
-      expectedReturnTime: eta
+      expectedReturnTime: eta,
+      expectedReturnDate: returnDate
     };
 
     const log = storage.addLog({
@@ -102,11 +137,13 @@ const App: React.FC = () => {
       residentName: resident.name,
       type: 'CHECK_OUT',
       timestamp: new Date().toISOString(),
+      performerName: resident.name,
       destination,
-      expectedReturnTime: eta
+      expectedReturnTime: eta,
+      expectedReturnDate: returnDate
     });
 
-    handleUpdateResident(updatedResident);
+    handleUpdateResident(updatedResident, true);
     setLogs([log, ...logs]);
   };
 
@@ -118,13 +155,33 @@ const App: React.FC = () => {
     setView(targetView);
   };
 
+  const formatDateTime = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    };
+    return date.toLocaleString('en-US', options);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-4 py-2 flex justify-between items-center sticky top-0 z-40">
-        <div className="flex items-center gap-2 font-bold text-indigo-600">
-          <ShieldAlert size={24} />
-          <span className="hidden sm:inline">ShelterSync</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 font-black text-indigo-600">
+            <ShieldAlert size={24} />
+            <span className="hidden sm:inline">ShelterSync</span>
+          </div>
+          <div className="h-4 w-px bg-gray-200 hidden md:block" />
+          <div className="hidden md:flex items-center gap-2 text-gray-400 font-bold text-xs uppercase tracking-widest">
+            <Clock size={14} className="text-indigo-400" />
+            {formatDateTime(currentTime)}
+          </div>
         </div>
+        
         <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => toggleView('KIOSK')}
@@ -152,7 +209,7 @@ const App: React.FC = () => {
             </button>
           )}
           <div className="hidden sm:block text-right text-[10px] text-gray-400 font-mono">
-            V1.0.6-UI-CUSTOM
+            V1.0.9-AUDIT
           </div>
         </div>
       </nav>
@@ -168,6 +225,7 @@ const App: React.FC = () => {
             onAddResident={handleAddResident}
             onDeleteResident={handleDeleteResident}
             onUpdateKioskSettings={handleUpdateKioskSettings}
+            onCheckIn={handleCheckIn}
           />
         ) : (
           <KioskUI 

@@ -10,7 +10,17 @@ const KEYS = {
 };
 
 const DEFAULT_STAFF: AuthUser[] = [
-  { id: 'admin1', username: 'admin', pin: '1234', role: 'ADMIN', name: 'System Admin' }
+  { 
+    id: 'admin1', 
+    username: 'admin', 
+    pin: '1234', 
+    role: 'ADMIN', 
+    name: 'System Admin',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+    phone: '',
+    email: 'admin@sheltersync.com',
+    notes: 'Primary system administrator.'
+  }
 ];
 
 const DEFAULT_KIOSK_SETTINGS: KioskSettings = {

@@ -16,6 +16,7 @@ export interface Resident {
   lastActionAt: string;
   currentDestination?: string;
   expectedReturnTime?: string;
+  expectedReturnDate?: string;
   notes: string;
 }
 
@@ -32,16 +33,23 @@ export interface AuthUser {
   pin: string;
   role: UserRole;
   name: string;
+  photoUrl?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
 }
 
 export interface MovementLog {
   id: string;
   residentId: string;
   residentName: string;
-  type: 'CHECK_IN' | 'CHECK_OUT';
+  type: 'CHECK_IN' | 'CHECK_OUT' | 'PROFILE_UPDATE';
   timestamp: string;
+  performerName?: string;
   destination?: string;
   expectedReturnTime?: string;
+  expectedReturnDate?: string;
+  isLate?: boolean;
 }
 
 export interface AppState {

@@ -134,45 +134,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ logs, re
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Trend Chart */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp size={20} className="text-indigo-600" />
-              Movement Trends
-            </h3>
-            <div className="flex gap-4 text-xs font-semibold">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-indigo-500 rounded-sm" /> Check-In</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-amber-400 rounded-sm" /> Check-Out</div>
-            </div>
-          </div>
-          
-          <div className="h-64 flex items-end gap-4">
-            {chartData.length > 0 ? chartData.map(([date, vals]) => (
-              <div key={date} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="w-full flex justify-center items-end gap-1 h-full">
-                  <div 
-                    className="w-full max-w-[20px] bg-indigo-500 rounded-t-md transition-all group-hover:bg-indigo-600"
-                    style={{ height: `${(vals.in / maxVal) * 100}%` }}
-                    title={`In: ${vals.in}`}
-                  />
-                  <div 
-                    className="w-full max-w-[20px] bg-amber-400 rounded-t-md transition-all group-hover:bg-amber-500"
-                    style={{ height: `${(vals.out / maxVal) * 100}%` }}
-                    title={`Out: ${vals.out}`}
-                  />
-                </div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{date}</span>
-              </div>
-            )) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300 italic">
-                Insufficient data for trend visualization
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Current Occupancy Status */}
+        {/* Current Occupancy Status - Now First */}
         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
           <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <Calendar size={20} className="text-indigo-600" />
@@ -219,6 +181,44 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ logs, re
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Trend Chart - Now Second */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <TrendingUp size={20} className="text-indigo-600" />
+              Movement Trends
+            </h3>
+            <div className="flex gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-indigo-500 rounded-sm" /> Check-In</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-amber-400 rounded-sm" /> Check-Out</div>
+            </div>
+          </div>
+          
+          <div className="h-64 flex items-end gap-4">
+            {chartData.length > 0 ? chartData.map(([date, vals]) => (
+              <div key={date} className="flex-1 flex flex-col items-center gap-2 group">
+                <div className="w-full flex justify-center items-end gap-1 h-full">
+                  <div 
+                    className="w-full max-w-[20px] bg-indigo-500 rounded-t-md transition-all group-hover:bg-indigo-600"
+                    style={{ height: `${(vals.in / maxVal) * 100}%` }}
+                    title={`In: ${vals.in}`}
+                  />
+                  <div 
+                    className="w-full max-w-[20px] bg-amber-400 rounded-t-md transition-all group-hover:bg-amber-500"
+                    style={{ height: `${(vals.out / maxVal) * 100}%` }}
+                    title={`Out: ${vals.out}`}
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{date}</span>
+              </div>
+            )) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300 italic">
+                Insufficient data for trend visualization
+              </div>
+            )}
           </div>
         </div>
       </div>

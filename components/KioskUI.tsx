@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { Resident, KioskSettings } from '../types';
-import { LogIn, LogOut, Search, Clock, MapPin, X, ArrowRight } from 'lucide-react';
+import { LogIn, LogOut, Search, Clock, MapPin, X, ArrowRight, Calendar } from 'lucide-react';
 import { STATUS_COLORS } from '../constants';
 
 interface KioskUIProps {
   residents: Resident[];
   settings: KioskSettings;
   onCheckIn: (id: string) => void;
-  onCheckOut: (id: string, destination: string, eta: string) => void;
+  onCheckOut: (id: string, destination: string, eta: string, returnDate: string) => void;
 }
 
 export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn, onCheckOut }) => {
@@ -16,14 +16,16 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
   const [selectedForCheckout, setSelectedForCheckout] = useState<Resident | null>(null);
   const [destination, setDestination] = useState('');
   const [eta, setEta] = useState('');
+  const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const filteredResidents = residents.filter(r => 
-    r.name.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => a.name.localeCompare(b.name));
+  const filteredResidents = residents
+    .filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleAction = (resident: Resident) => {
     if (resident.isCheckedIn) {
       setSelectedForCheckout(resident);
+      setReturnDate(new Date().toISOString().split('T')[0]);
     } else {
       onCheckIn(resident.id);
     }
@@ -31,8 +33,8 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
 
   const handleCheckOutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedForCheckout && destination && eta) {
-      onCheckOut(selectedForCheckout.id, destination, eta);
+    if (selectedForCheckout && destination && eta && returnDate) {
+      onCheckOut(selectedForCheckout.id, destination, eta, returnDate);
       setSelectedForCheckout(null);
       setDestination('');
       setEta('');
@@ -78,51 +80,59 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredResidents.map(resident => (
-              <button
-                key={resident.id}
-                onClick={() => handleAction(resident)}
-                className="bg-white/95 backdrop-blur-sm rounded-[32px] p-6 shadow-lg border-4 border-transparent hover:border-indigo-500 hover:shadow-2xl transition-all active:scale-95 text-left group flex flex-col h-full"
-              >
-                <div className="flex items-start gap-4 mb-4">
-                  <img src={resident.photoUrl} className="w-20 h-20 rounded-2xl object-cover shadow-md ring-4 ring-gray-50 group-hover:ring-indigo-50 transition-all" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-2xl font-black text-gray-900 leading-tight mb-1 truncate">{resident.name}</h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${resident.isCheckedIn ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {resident.isCheckedIn ? (
-                          <><LogIn size={12} /> IN</>
-                        ) : (
-                          <><LogOut size={12} /> OUT</>
+            {filteredResidents.map(resident => {
+              return (
+                <button
+                  key={resident.id}
+                  onClick={() => handleAction(resident)}
+                  className={`relative bg-white/95 backdrop-blur-sm rounded-[32px] p-6 shadow-lg border-4 transition-all active:scale-95 text-left group flex flex-col h-full ${resident.isCheckedIn ? 'border-green-500 hover:shadow-green-100' : 'border-red-500 hover:shadow-red-100'}`}
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <img src={resident.photoUrl} className="w-20 h-20 rounded-2xl object-cover shadow-md ring-4 ring-gray-50 group-hover:ring-indigo-50 transition-all" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-2xl font-black text-gray-900 leading-tight mb-1 truncate">{resident.name}</h3>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${resident.isCheckedIn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {resident.isCheckedIn ? (
+                            <><LogIn size={12} /> IN</>
+                          ) : (
+                            <><LogOut size={12} /> OUT</>
+                          )}
+                        </div>
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${STATUS_COLORS[resident.statusColor]}`}>
+                          {resident.statusText}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto space-y-3">
+                    {!resident.isCheckedIn && (
+                      <div className="space-y-1.5 p-3 rounded-2xl bg-gray-50">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                          <MapPin size={14} className="text-indigo-400" />
+                          <span className="truncate">{resident.currentDestination}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                          <Clock size={14} className="text-indigo-400" />
+                          <span>{resident.expectedReturnTime}</span>
+                        </div>
+                        {resident.expectedReturnDate && (
+                          <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                            <Calendar size={14} className="text-indigo-400" />
+                            <span>{new Date(resident.expectedReturnDate).toLocaleDateString()}</span>
+                          </div>
                         )}
                       </div>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${STATUS_COLORS[resident.statusColor]}`}>
-                        {resident.statusText}
-                      </div>
+                    )}
+                    <div className={`w-full py-4 rounded-2xl text-center font-black text-lg flex items-center justify-center gap-2 transition-all ${resident.isCheckedIn ? 'bg-indigo-600 text-white group-hover:bg-indigo-700' : 'bg-green-600 text-white group-hover:bg-green-700'}`}>
+                       {resident.isCheckedIn ? 'Check Out' : 'Check In'}
+                       <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-auto space-y-3">
-                  {!resident.isCheckedIn && (
-                    <div className="space-y-1.5 p-3 bg-gray-50 rounded-2xl">
-                      <div className="flex items-center gap-2 text-gray-500 text-xs font-bold">
-                        <MapPin size={14} className="text-indigo-400" />
-                        <span className="truncate">{resident.currentDestination}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-xs font-bold">
-                        <Clock size={14} className="text-indigo-400" />
-                        <span>ETA: {resident.expectedReturnTime}</span>
-                      </div>
-                    </div>
-                  )}
-                  <div className={`w-full py-4 rounded-2xl text-center font-black text-lg flex items-center justify-center gap-2 transition-all ${resident.isCheckedIn ? 'bg-indigo-600 text-white group-hover:bg-indigo-700' : 'bg-green-600 text-white group-hover:bg-green-700'}`}>
-                     {resident.isCheckedIn ? 'Check Out' : 'Check In'}
-                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -130,7 +140,7 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
       {/* Check Out Modal */}
       {selectedForCheckout && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center z-[100] p-6">
-          <div className="bg-white rounded-[48px] w-full max-w-xl p-12 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[48px] w-full max-w-xl p-12 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Check Out</h2>
@@ -141,7 +151,7 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
               </button>
             </div>
 
-            <form onSubmit={handleCheckOutSubmit} className="space-y-8">
+            <form onSubmit={handleCheckOutSubmit} className="space-y-6">
               <div className="space-y-3">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                   <MapPin size={16} /> Destination
@@ -150,23 +160,38 @@ export const KioskUI: React.FC<KioskUIProps> = ({ residents, settings, onCheckIn
                   type="text"
                   required
                   placeholder="e.g. Work, Store, Clinic"
-                  className="w-full px-6 py-5 bg-gray-50 border-4 border-transparent rounded-[24px] text-2xl font-bold focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
+                  className="w-full px-6 py-4 bg-gray-50 border-4 border-transparent rounded-[24px] text-xl font-bold focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
                   value={destination}
                   onChange={e => setDestination(e.target.value)}
                 />
               </div>
 
-              <div className="space-y-3">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Clock size={16} /> Expected Return
-                </label>
-                <input
-                  type="time"
-                  required
-                  className="w-full px-6 py-5 bg-gray-50 border-4 border-transparent rounded-[24px] text-3xl font-black focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
-                  value={eta}
-                  onChange={e => setEta(e.target.value)}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <Clock size={16} /> Return Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    className="w-full px-6 py-4 bg-gray-50 border-4 border-transparent rounded-[24px] text-2xl font-black focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
+                    value={eta}
+                    onChange={e => setEta(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <Calendar size={16} /> Return Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full px-6 py-4 bg-gray-50 border-4 border-transparent rounded-[24px] text-xl font-bold focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
+                    value={returnDate}
+                    onChange={e => setReturnDate(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
